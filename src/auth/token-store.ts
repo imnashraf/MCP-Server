@@ -64,3 +64,21 @@ export class MemoryTokenStore implements TokenStore {
     this.tokens = null;
   }
 }
+
+export interface TokenSeed {
+  refreshToken?: string;
+  scope?: string;
+  email?: string;
+}
+
+/**
+ * Bootstraps an empty token store from configuration (e.g. a Railway variable), for hosts where
+ * the interactive consent flow cannot run. Never overwrites an existing refresh token, so tokens
+ * refreshed and persisted on the volume win over the seed. Returns true when it wrote the store.
+ */
+export function seedTokenStore(store: TokenStore, seed: TokenSeed): boolean {
+  if (!seed.refreshToken) return false;
+  if (store.load()?.refresh_token) return false;
+  store.save({ refresh_token: seed.refreshToken, scope: seed.scope, email: seed.email });
+  return true;
+}

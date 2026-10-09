@@ -1,6 +1,6 @@
 # Deployment Plan: Universal Google Workspace MCP Server on Railway
 
-**Status:** Plan, not yet executed · **Profile:** Remote (Streamable HTTP), single user, single replica · **Written:** 2026-10-10
+**Status:** Phase 0 code changes implemented (see 2); deployment itself not yet executed · **Profile:** Remote (Streamable HTTP), single user, single replica · **Written:** 2026-10-10
 
 Railway specifics below (builder name, volume behavior, CLI commands) are from general knowledge and should be re-checked against current Railway docs when executing.
 
@@ -21,7 +21,9 @@ Constraints that shape the plan:
 | Config refuses unsafe setups | `MCP_ACCESS_TOKEN` (≥ 32 chars) is mandatory; non-loopback plain HTTP is refused unless the TLS-proxy flag is set. |
 | Google OAuth app in *Testing* status | Refresh tokens **expire after 7 days**. Must be addressed before relying on the deployment (see 4.2). |
 
-## 2. Gaps in the current code (Phase 0, do before deploying)
+## 2. Gaps in the current code (Phase 0: implemented)
+
+> Implemented: `PORT` fallback, `GOOGLE_REFRESH_TOKEN` seeding, `railway.json`, tests. Also added beyond the original list: allowed hosts default to `RAILWAY_PUBLIC_DOMAIN` and are now mandatory on a public bind; token/idempotency files default to `RAILWAY_VOLUME_MOUNT_PATH`. Optional `GOOGLE_TOKEN_SCOPE` and `GOOGLE_AUTHORIZED_EMAIL` accompany the seed.
 
 The server works locally but two small changes are needed for Railway.
 

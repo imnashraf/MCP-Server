@@ -67,6 +67,14 @@ Endpoint: `https://<host>/mcp`, stateless JSON responses. The bearer token authe
 
 Run one instance only if you rely on idempotency keys (the store is a local file).
 
+### Railway
+See [deployment-plan.md](deployment-plan.md). The code supports it as follows:
+- `railway.json` sets build/start commands, the `/healthz` healthcheck and a single replica.
+- Port: `MCP_HTTP_PORT`, else Railway's `PORT`, else 3000.
+- Allowed hosts default to Railway's `RAILWAY_PUBLIC_DOMAIN`; a public bind with no allowed host is refused.
+- If a volume is attached (`RAILWAY_VOLUME_MOUNT_PATH`), token and idempotency files default to it.
+- `GOOGLE_REFRESH_TOKEN` (with optional `GOOGLE_TOKEN_SCOPE`, `GOOGLE_AUTHORIZED_EMAIL`) seeds an empty token store, because consent cannot run on the host. Authorize locally with `npm run auth`, then copy only the `refresh_token`. An existing stored token is never overwritten, so to switch to a new seed delete `tokens.json` on the volume and redeploy.
+
 ## Tool contracts
 
 Every result is JSON (also in `structuredContent`); failures set `isError`.

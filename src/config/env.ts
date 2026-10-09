@@ -33,6 +33,8 @@ export interface AppConfig {
     redirectUri: string;
     tokenStorePath: string;
     apiTimeoutMs: number;
+    /** Optional bootstrap credential for hosts where the interactive consent flow cannot run. */
+    seed: { refreshToken?: string; scope?: string; email?: string };
   };
   capabilities: {
     gmailSend: boolean;
@@ -112,7 +114,8 @@ const EnvSchema = z.object({
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error', 'silent']).optional().default('info'),
 
   MCP_HTTP_HOST: z.string().trim().optional().default('127.0.0.1'),
-  MCP_HTTP_PORT: int(3000, 0, 65535),
+  MCP_HTTP_PORT: int(-1, 0, 65535),
+  PORT: int(-1, 0, 65535), // injected by PaaS hosts such as Railway; MCP_HTTP_PORT wins
   MCP_HTTP_PATH: z
     .string()
     .trim()
@@ -136,6 +139,13 @@ const EnvSchema = z.object({
   GOOGLE_REDIRECT_URI: z.string().trim().optional().default('http://127.0.0.1:53682/oauth2callback'),
   GOOGLE_TOKEN_STORE_PATH: optionalString,
   GOOGLE_API_TIMEOUT_MS: int(30_000, 1_000, 120_000),
+  GOOGLE_REFRESH_TOKEN: optionalString,
+  GOOGLE_TOKEN_SCOPE: optionalString,
+  GOOGLE_AUTHORIZED_EMAIL: optionalString,
+
+  // Provided automatically by Railway; used only for safe defaults.
+  RAILWAY_PUBLIC_DOMAIN: optionalString,
+  RAILWAY_VOLUME_MOUNT_PATH: optionalString,
 
   ENABLE_GMAIL_SEND: bool(true),
   ENABLE_DOCS_APPEND: bool(true),
@@ -168,8 +178,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, opts: { root?: 
   const transport = e.MCP_TRANSPORT;
   const authMode: McpAuthMode = e.MCP_AUTH_MODE ?? (transport === 'http' ? 'bearer' : 'none');
 
-  const tokenStorePath = expandHome(e.GOOGLE_TOKEN_STORE_PATH ?? path.join(DEFAULT_CONFIG_DIR, 'tokens.json'));
-  const idempotencyStorePath = expandHome(e.IDEMPOTENCY_STORE_PATH ?? path.join(DEFAULT_CONFIG_DIR, 'idempotency.json'));
+  // On Railway the container filesystem is ephemeral; default to the attached volume when there is one.
+  const stateDir = e.RAILWAY_VOLUME_MOUNT_PATH ?? DEFAULT_CONFIG_DIR;
+  const tokenStorePath = expandHome(e.GOOGLE_TOKEN_STORE_PATH ?? path.join(stateDir, 'tokens.json'));
+  const idempotencyStorePath = expandHome(e.IDEMPOTENCY_STORE_PATH ?? path.join(stateDir, 'idempotency.json'));
+  const port = e.MCP_HTTP_PORT >= 0 ? e.MCP_HTTP_PORT : e.PORT >= 0 ? e.PORT : 3000;
+  const allowedHosts =
+    e.MCP_HTTP_ALLOWED_HOSTS.length > 0 ? e.MCP_HTTP_ALLOWED_HOSTS : e.RAILWAY_PUBLIC_DOMAIN ? [e.RAILWAY_PUBLIC_DOMAIN.toLowerCase()] : [];
 
   if (isPathInside(tokenStorePath, root)) {
     throw new ConfigError(
@@ -210,6 +225,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, opts: { root?: 
           'or set MCP_HTTP_BEHIND_TLS_PROXY=true when a TLS-terminating reverse proxy fronts this server.',
       );
     }
+    if (!isLoopbackHost(e.MCP_HTTP_HOST) && allowedHosts.length === 0) {
+      throw new ConfigError(
+        'Binding a non-loopback interface requires MCP_HTTP_ALLOWED_HOSTS (your public hostname) for DNS-rebinding protection.',
+      );
+    }
   }
   if (authMode === 'bearer' && (!e.MCP_ACCESS_TOKEN || e.MCP_ACCESS_TOKEN.length < 32)) {
     throw new ConfigError('MCP_AUTH_MODE=bearer requires MCP_ACCESS_TOKEN with at least 32 characters.');
@@ -225,9 +245,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, opts: { root?: 
     logLevel: e.LOG_LEVEL,
     http: {
       host: e.MCP_HTTP_HOST,
-      port: e.MCP_HTTP_PORT,
+      port,
       path: e.MCP_HTTP_PATH,
-      allowedHosts: e.MCP_HTTP_ALLOWED_HOSTS,
+      allowedHosts,
       allowedOrigins: e.MCP_HTTP_ALLOWED_ORIGINS,
       maxBodyBytes: e.MCP_HTTP_MAX_BODY_BYTES,
       rateLimitPerMinute: e.MCP_HTTP_RATE_LIMIT_PER_MINUTE,
@@ -243,6 +263,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, opts: { root?: 
       redirectUri: e.GOOGLE_REDIRECT_URI,
       tokenStorePath,
       apiTimeoutMs: e.GOOGLE_API_TIMEOUT_MS,
+      seed: { refreshToken: e.GOOGLE_REFRESH_TOKEN, scope: e.GOOGLE_TOKEN_SCOPE, email: e.GOOGLE_AUTHORIZED_EMAIL },
     },
     capabilities: { gmailSend: e.ENABLE_GMAIL_SEND, docsAppend: e.ENABLE_DOCS_APPEND },
     gmail: {
