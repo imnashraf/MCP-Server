@@ -1,0 +1,55 @@
+{
+  "name": "universal-google-workspace-mcp",
+  "version": "0.1.0",
+  "description": "Vendor-neutral MCP server exposing Gmail send and append-only Google Docs tools over stdio and Streamable HTTP.",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "universal-google-workspace-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    ".env.example"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "start:http": "MCP_TRANSPORT=http node dist/index.js",
+    "auth": "tsx src/cli/authorize.ts",
+    "auth:dist": "node dist/cli/authorize.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "RUN_GOOGLE_INTEGRATION_TESTS=true vitest run tests/integration/google.live.test.ts",
+    "inspector": "npx -y @modelcontextprotocol/inspector node dist/index.js",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build"
+  },
+  "dependencies": {
+    "@googleapis/docs": "14.1.0",
+    "@googleapis/gmail": "22.0.1",
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "express": "5.3.0",
+    "express-rate-limit": "8.7.1",
+    "google-auth-library": "11.2.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/express": "5.0.6",
+    "@types/node": "24.19.2",
+    "eslint": "10.12.0",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.1",
+    "vitest": "5.0.3"
+  }
+}
