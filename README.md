@@ -1,5 +1,7 @@
 # Universal Google Workspace MCP Server
 
+[![CI](https://github.com/imnashraf/MCP-Server/actions/workflows/ci.yml/badge.svg)](https://github.com/imnashraf/MCP-Server/actions/workflows/ci.yml)
+
 A vendor-neutral [Model Context Protocol](https://modelcontextprotocol.io) server exposing three tools:
 
 | Tool | Writes? | Purpose |
