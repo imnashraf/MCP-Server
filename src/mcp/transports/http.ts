@@ -50,7 +50,7 @@ export function createHttpApp(deps: ToolDeps, logger: Logger): Express {
   app.use(
     h.path,
     rateLimit({ windowMs: 60_000, limit: h.rateLimitPerMinute, standardHeaders: 'draft-7', legacyHeaders: false }),
-    bearerAuth(config.mcpAuth.accessToken),
+    bearerAuth(config.mcpAuth.accessToken, { maxFailuresPerMinute: h.rateLimitPerMinute }),
     express.json({ limit: h.maxBodyBytes }),
   );
 
