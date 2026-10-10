@@ -10,7 +10,7 @@ A vendor-neutral [Model Context Protocol](https://modelcontextprotocol.io) serve
 | `google_docs_append_text` | **Yes – modifies a doc** | Append text to the end of an existing Google Doc (never replaces content) |
 | `google_workspace_status` | No | Safe diagnostics: capabilities and authorization state, no secrets |
 
-Single Google account per server instance. Business logic (`src/services`, `src/validation`) is independent of the transport (`src/mcp/transports`) and of any AI vendor.
+Single Google account per server instance. Pushes to `main` run CI on GitHub; Railway deploys only after CI passes. Business logic (`src/services`, `src/validation`) is independent of the transport (`src/mcp/transports`) and of any AI vendor.
 
 ## Setup
 
