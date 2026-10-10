@@ -25,3 +25,24 @@ jobs:
       # typecheck + lint + unit/protocol tests (Google fully mocked) + build; no secrets needed
       - run: npm run check
       - run: npm audit --omit=dev --audit-level=high
+
+  # Deploys to Railway only after every `check` job passed, and only for pushes to main.
+  # Requires the RAILWAY_TOKEN repository secret (a Railway *project token* for the production
+  # environment); without it the deploy step is skipped so CI still reports on tests.
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: railway-deploy
+      cancel-in-progress: false
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Railway
+        if: env.RAILWAY_TOKEN != ''
+        run: npx --yes @railway/cli@5.64.2 up --ci --service mcp-server
+      - name: Skipped (no RAILWAY_TOKEN secret)
+        if: env.RAILWAY_TOKEN == ''
+        run: echo "RAILWAY_TOKEN secret not set; skipping deploy."
